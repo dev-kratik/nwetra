@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Speech Broadcast</title>
+</head>
+<body>
+    <h1>Speak & All Clients Will Hear!</h1>
+    
+    <!-- Only Host will see this button -->
+    <button id="speakButton" onclick="startSpeaking()">Start Speaking</button>
+    
+    <p id="output"></p>
+
+    <script>
+        const ws = new WebSocket('wss://6127-2409-40c4-100f-5a76-846e-963-888d-ae35.ngrok-free.app'); // Update for production
+        
+        const isHost = confirm("Are you the host? Click OK if you are."); // Host confirmation
+
+        // Hide speak button for non-hosts
+        if (!isHost) {
+            document.getElementById("speakButton").style.display = "none";
+        }
+
+        ws.onmessage = (event) => {
+            console.log("Received from server:", event.data);
+            document.getElementById('output').innerText = event.data;
+            
+            const utterance = new SpeechSynthesisUtterance(event.data);
+            speechSynthesis.speak(utterance);
+        };
+
+        function startSpeaking() {
+            if (!isHost) return; // Prevent non-hosts from speaking
+            
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                console.log("Recognized:", transcript);
+                ws.send(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+            };
+        }
+    </script>
+</body>
+</html>
